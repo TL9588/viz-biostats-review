@@ -1,0 +1,115 @@
+---
+tags: visualization r ggplot2 nhanes nutrition biostatistics
+---
+
+# Setup and the Data
+
+Every figure in these tutorials is built from the same small set of files. This page describes the packages involved, the datasets behind the figures, and the sampling issues that determine how those figures should be read.
+
+## The Packages
+
+All packages used here are part of the environment that builds this site, so the code on these pages runs exactly as shown. On a personal machine they can be installed from CRAN, the Comprehensive R Archive Network.
+
+```r
+install.packages(c(
+  "ggplot2", "dplyr", "forcats", "readr",
+  "scales", "patchwork", "ggrepel", "broom", "survey"
+))
+```
+
+| Package | Role in These Tutorials |
+| --- | --- |
+| `ggplot2` | Builds every figure |
+| `dplyr` | Filters, groups, and summarizes before plotting |
+| `forcats` | Reorders categorical variables so figures read in a sensible order |
+| `readr` | Reads the data files |
+| `scales` | Formats axis labels as percentages, currency, and comma-separated counts |
+| `patchwork` | Composes several figures into one multi-panel layout |
+| `ggrepel` | Places text labels without overlapping |
+| `broom` | Converts model output into data frames that can be plotted |
+| `survey` | Computes survey-weighted estimates and their standard errors |
+
+Only the packages a given lesson needs are loaded at the top of that lesson. The `tidyverse` metapackage is deliberately avoided in favour of loading individual packages, which is faster and makes the dependencies of each figure explicit.
+
+## The Data
+
+Three datasets appear across these tutorials. All three are redistributed with the tutorials in the `data` directory beside this page, so no download is required to follow along.
+
+### The National Health and Nutrition Examination Survey
+
+The National Health and Nutrition Examination Survey (NHANES) is conducted by the National Center for Health Statistics, part of the United States Centers for Disease Control and Prevention. It combines an in-person interview with a physical examination and laboratory work, making it unusual among health surveys: it records what people report eating *and* measures their bodies and blood directly.
+
+That combination is why it anchors these tutorials. A single table holds dietary intake, body measurements, blood pressure, and laboratory results for the same people, which supports genuine questions rather than contrived ones.
+
+Two files are provided.
+
+`nhanes-2017-2018.csv`
+: Adults aged 18 and over from the 2017–2018 cycle, roughly 5,500 rows. Used for most lessons.
+
+`nhanes-cycles.csv`
+: The same core measurements across three cycles — 2013–2014, 2015–2016, and 2017–2018 — for trend figures. Blood pressure is omitted from this file because the measurement method changed between cycles, making values not directly comparable.
+
+#### What the Columns Mean
+
+| Column | Description |
+| --- | --- |
+| `seqn` | Respondent identifier |
+| `cycle` | Survey cycle, in the multi-cycle file only |
+| `sex` | Reported sex |
+| `age_years` | Age in years |
+| `race_ethnicity` | Self-reported race and ethnicity category |
+| `income_poverty_ratio` | Household income as a ratio to the federal poverty level |
+| `bmi` | Body mass index, in kilograms per square metre |
+| `weight_kg`, `height_cm`, `waist_cm` | Measured body dimensions |
+| `energy_kcal` | Total energy intake over 24 hours, in kilocalories |
+| `protein_g`, `carbohydrate_g`, `sugar_g`, `fiber_g`, `total_fat_g` | Macronutrient intake over 24 hours, in grams |
+| `sodium_mg`, `calcium_mg` | Selected micronutrient intake over 24 hours, in milligrams |
+| `systolic_mmhg`, `diastolic_mmhg` | Blood pressure, averaged across valid readings |
+| `cholesterol_mgdl` | Total serum cholesterol |
+| `hba1c_percent` | Glycohemoglobin, a marker of average blood glucose |
+| `survey_weight`, `psu`, `stratum` | Sampling design variables, explained below |
+
+#### Sample Weights and Why They Matter
+
+NHANES does not draw a simple random sample of the United States population. It uses a complex multistage probability design that deliberately oversamples certain groups so that estimates for those groups are precise enough to be useful. Some people therefore represent many more members of the population than others.
+
+The practical consequence is direct: **an ordinary average of an NHANES column is not an estimate of the United States population average.** It is an average of the sample, which was never meant to resemble the population in its raw proportions. The `survey_weight` column records how many people each respondent stands for, and `psu` and `stratum` describe the clustering needed to compute honest standard errors.
+
+These tutorials handle this in two stages. Lessons [10](10-first-plots.md) through [60](60-logistic-models.Rmd) ignore the weights, because the goal there is learning to build a figure and fit a model, and the unweighted version is simpler to follow. Those results describe the sample and are labelled as such. [Trends and Uncertainty](70-trends-and-uncertainty.md) then introduces the `survey` package, puts weighted and unweighted estimates on the same axes, and shows how much the answer moves.
+
+Anyone publishing results from NHANES should use the weighted estimates. The CDC's [NHANES tutorials](https://wwwn.cdc.gov/nchs/nhanes/tutorials/default.aspx) cover the survey design in full.
+
+#### Missing Values
+
+Missing values are common in NHANES and are not distributed at random. Laboratory measurements were taken on a subsample, dietary recall was not completed by everyone, and some measurements fail. Plotting functions in R discard missing values silently or with a warning, which can quietly change the number of people behind a figure.
+
+Each lesson states how many observations a figure rests on and handles missing values explicitly rather than leaving the default behaviour to act unseen.
+
+### Palmer Penguins
+
+The Palmer Penguins dataset records body measurements for 344 penguins from three species observed near Palmer Station, Antarctica. It appears in [First Plots](10-first-plots.md), where a small, clean dataset keeps attention on plotting syntax rather than on data preparation. It is released under a Creative Commons Zero licence.
+
+### Low Birth Weight
+
+The `birthwt` dataset records birth weight and maternal risk factors for 189 infants born at a Massachusetts hospital in 1986. It is a long-standing teaching dataset in biostatistics and appears in [Comparing Groups](20-comparing-groups.md) as a compact second example. It is distributed with the `MASS` package.
+
+## Obtaining the Data Directly
+
+The NHANES files included here are derived from the original survey releases. The source files are published by the CDC in SAS transport (`XPT`) format and can be downloaded directly.
+
+| Component | File | Contents |
+| --- | --- | --- |
+| Demographics | [`DEMO_J`](https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/DEMO_J.xpt) | Age, sex, race and ethnicity, income, sample weights |
+| Examination | [`BMX_J`](https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/BMX_J.xpt) | Body measurements |
+| Examination | [`BPX_J`](https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/BPX_J.xpt) | Blood pressure |
+| Dietary | [`DR1TOT_J`](https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/DR1TOT_J.xpt) | Total nutrient intake, first 24-hour recall |
+| Laboratory | [`TCHOL_J`](https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/TCHOL_J.xpt) | Total cholesterol |
+| Laboratory | [`GHB_J`](https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/GHB_J.xpt) | Glycohemoglobin |
+
+Files are joined on `seqn`, the respondent identifier. The `_J` suffix denotes the 2017–2018 cycle; `_I` is 2015–2016 and `_H` is 2013–2014. Each file has an accompanying documentation page on the CDC website describing every variable and its coding, which is worth consulting before using any column not listed above.
+
+## Licensing and Reuse
+
+NHANES is produced by the United States federal government and is in the public domain. It carries no copyright restriction and may be reproduced without permission. The Palmer Penguins dataset is released under a Creative Commons Zero licence. The `birthwt` dataset is distributed with the `MASS` package under the GNU General Public License.
+
+Published analyses of NHANES should cite the survey and state the cycles used.
