@@ -1,0 +1,55 @@
+---
+tags: visualization python matplotlib seaborn nhanes nutrition biostatistics
+---
+
+# Data Visualization With Python
+
+These tutorials build statistical graphics in Python using [Matplotlib](https://matplotlib.org/) and [seaborn](https://seaborn.pydata.org/). Rather than demonstrating each chart type in isolation, the lessons follow a single analysis from first look to finished figure, using publicly available health and nutrition data.
+
+Python offers two complementary approaches to plotting, and the distinction causes more confusion than any other aspect of the ecosystem. Matplotlib provides explicit, low-level control over every element of a figure. Seaborn sits on top of Matplotlib and produces statistical graphics from a data frame in a single call, returning Matplotlib objects that can then be adjusted directly. These tutorials use both deliberately and make clear which is doing the work at each step.
+
+## Who These Tutorials Are For
+
+Readers should be comfortable with basic Python syntax and with pandas data frames — selecting columns, filtering rows, and grouping. No prior plotting experience is assumed. Researchers in the health sciences will recognize the datasets, but the techniques apply to any field.
+
+For help setting up Python, see [Which Python Setup Is Right for Me?](../../ai/python/10-which-python-setup.md).
+
+## Data
+
+Every lesson draws on the National Health and Nutrition Examination Survey (NHANES), a public-domain survey conducted by the United States Centers for Disease Control and Prevention. Two small teaching datasets supplement it where a simpler example is clearer. [Setup and the Data](00-setup-and-data.md) describes all three, explains how the survey is structured, and covers the sampling issues that affect how its figures should be interpreted.
+
+A parallel set of tutorials covers the [same material in R](../r/index.md).
+
+## Tutorials
+
+```{gallery-grid}
+---
+grid-columns: 1
+---
+- header: "{fas}`database` Setup and the Data"
+  content: "The packages used throughout, the datasets behind every figure, and why NHANES sample weights change what its numbers mean."
+  link: "00-setup-and-data.html"
+
+- header: "{fas}`chart-simple` First Plots"
+  content: "Matplotlib fundamentals and the figure-and-axes model, then the same figure in seaborn to make the trade-off between control and brevity explicit."
+  link: "10-first-plots.html"
+
+- header: "{fas}`chart-column` Comparing Groups"
+  content: "Boxplots, violins, and strip charts for comparing distributions across categories, plus faceted small multiples and deliberate category ordering."
+  link: "20-comparing-groups.html"
+
+- header: "{fas}`chart-scatter` Relationships"
+  content: "Scatterplots for two continuous variables, practical fixes for overplotting with thousands of points, and regression and density overlays."
+  link: "30-relationships.html"
+
+- header: "{fas}`chart-area` Trends and Uncertainty"
+  content: "Plotting error bars and confidence ribbons from survey-weighted estimates, and why design-based inference belongs in R."
+  link: "40-trends-and-uncertainty.html"
+
+- header: "{fas}`image` Publication-Ready Figures"
+  content: "Style sheets, annotation, multi-panel layout, colorblind-safe palettes, and exporting at print resolution."
+  link: "50-publication-ready.html"
+
+```
+
+> **To Get Support:** - Please email datalab-support@elist.tufts.edu for Python and data visualization support at Tufts.
