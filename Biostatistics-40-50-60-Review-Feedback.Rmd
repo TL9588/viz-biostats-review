@@ -1,0 +1,76 @@
+---
+title: "Biostatistics-40-50-60-Review-Feedback"
+author: "Tina Li"
+date: "2026-10-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Review Feedback: Modeling Lessons 40, 50, 60
+
+Here is my feedback on Biostatistics lessons 40, 50, 60.
+
+## 1. Model Specifications
+
+- **40-choosing-a-model, Adjustment and Confounding:** For the specific example provided in this lesson the variables age and sex are called confounders as a fact for affecting both blood pressure and dietary/sodium intake. The justification for adjusting for these variables clearly outlines the assumed causal structure on how age affects both blood pressure and dietary/sodium intake. Lessons 50 and 60 refer back to this statement in regards to BMI and dietary fiber, however, no explicit assumed causal structures/relationships of these two variables are given here. Association with exposure and outcome alone cannot establish their status as confounders.
+
+- **50-linear-models, The Question:** Treating BMI as a confounder is statistically problematic. Text adds BMI as a confounder for reasons given in previous Lesson 40 but as mentioned above Lesson 40 never justified BMI specifically. Sodium intake correlates strongly with total energy intake, making BMI a likely mediator on the causal pathway. Adjusting for it may be adjusting away part of the exposure's effect. The lesson should explicitly address this adjustment and the assumed causal relationship between BMI and dietary sodium intake and blood pressure.
+
+- **60-logistic-models, The Question:** The same issue applies to dietary fibre intake. It is listed as a confounder without justification. If fibre is related to BMI and hypertension, it could be a mediator or a collider.
+
+## 2. Hypertension Threshold
+
+- **60-logistic-models, Deriving the Outcome:** Mentions use of 2017 ACC/AHA hypertension threshold (130/80) without explanation for why this threshold was chosen over JNC7 hypertension threshold (140/90) which gives a very different prevalence.The current (130/80) threshold is an appropriate choice for teaching material, but the choice is not explained adequately leaving the outcome incompletely defined. Code defines hypertension by measured blood pressure without mentioning the ACC/AHA criterion for blood pressure lowering medication. Lesson should make note to differentiate between meeting the measured blood pressure threshold and not the full clinical definition.
+
+- **60-logistic-models, Step One, Step Three:** A lack of adequate explanation for why the (130/80) threshold was chosen over the older (140/90) threshold alters the results a lot. The CDC reported a 45.4% prevalence for the (130/80) threshold vs. a 30.7% prevalence for the (140/90) threshold. Lesson should take care to mention neither is definitively correct and that a single visit measurement is a teaching outcome and can not serve as a clinical diagnosis. CDC's national prevalence estimates may not match this data set due to omitted medications, unweighted analysis, and complete case restrictions.
+
+## 3. Statistical Content
+
+- **Odds Ratio vs. Risk Ratio (60-logistic-models, Step Four):** Warning correctly notes that an odds ratio can overstate the association when the outcome is common. We are working with a cross-sectional dataset so the relevant comparison/measure of association is generally a prevalence ratio and not a risk ratio. Hypertension affects a large portion of adults, 47.7% of entire US adult population from CDC statistics, so it is accurately described as a common outcome here based on the thresholds defined by CIOMS it is actually defined as very common affecting 10% or more of the population.
+
+- **Calibration Plot (60-logistic-models, Step Three):** Text notes that standard linear regression residual plots do not directly apply to binary outcomes. A calibration plot only checks overall calibration, but it is not a direct substitute for residual plots. Calibration checks overall fit (predicted vs. observed probabilities), but it does not check the assumption that continuous predictors like age are linear on the log-odds scale. A better substitute would be a binned residual plot or a partial residual plot to check for non-linearity and a smoothed scatterplot of the outcome vs. each continuous predictor. Lesson should include a predictor specific check or include clarification that calibration is only one part of a complete diagnostic.
+
+- **Confidence Band vs. Individual Range (50-linear-models, Step Five & 60-logistic-models, Step Five):** The lesson's warning block correctly distinguishes between uncertainty in the average predicted blood pressure and the range for an individual. We can also mention the correct statistical term for the individual range, a prediction interval, in the warning. The same clarification warning can be applied to the plogis() output and inserted in Lesson 60, which is a confidence interval for the mean predicted probability, not the prediction interval for an individual outcome.
+
+- **Reversing Factor Levels (60-logistic-models, Deriving the Outcome):** The general information/warning that reversing the order will silently reverse the direction of every estimate is not correct. Reversing the reference level only reverses the sign of the coefficient and reciprocates the odds ratio for that specific variable. It does not affect the other estimates, fitted probabilities, or overall model fit. The text should be adjusted to mention that it reverses the interpretation of that specific variables interpretation. This information/warning is also missing from Lesson 50, which also uses a factor variable sex.
+
+- **Re-scaling Sodium (50-linear-models, Step Four):** The code correctly re-scales the point estimate and confidence limits by 1,000 to give a per-gram contrast. The text should also explicitly note that the standard error must also be multiplied by 1,000 if it is reported. In the tip stating re-scaling never changes the conclusion, the language used can be slightly misleading. While the p-value may remain the same, changing the units from milligrams to grams can change how a reader interprets the practical effect size.
+
+## 4. Figure Descriptions
+
+Ran the code against generated NHANES data to render all ten plots. Most plots had accurate figure descriptions there were a few with discrepancies.
+
+- **50-linear-models, Step One (Histogram):** Mostly accurate, the histogram is uni modal, right-skewed, and centered near 120 - 125.
+
+- **50-linear-models, Step One (Scatterplot):** The loess line is flat for most of the data, but it curves quickly upward above 15,000 mg towards the end of the line on the right side with a large confidence band. The alt-text should mention this right-tail behavior.
+
+- **50-linear-models, Step Three (Residuals):** The alt-text predicts a roughly horizontal band and greater spread at higher fitted values. There is a higher vertical spread at higher fitted values. While band remains roughly horizontal for the center, the rendered plot shows a sharp downward curve at fitted values above 140 mmHg.
+
+- **60-logistic-models, Step Three (Calibration Plot):** The alt-text predicts points lying close to the diagonal line. The rendered plot shows miscalibration. At lower end points are below line and at the higher end the observed prevalence flattens out showing signs of over-predicting risk for higher risk individuals. The text can be adjusted to account for model's miscalibration or maybe adjustments to the model can be made.
+
+- **60-logistic-models, Step Five (Predicted Probability Curve):** The alt-text is mostly accurate, but the main text claims the curve is gently S-shaped and flattens at both ends. The rendered plot shows essentially a straight line within the 18–45 BMI range with a similarly slim confidence band that is uniform in width throughout. At a BMI of 18 the predicted probability of hypertension is around 28% and at a BMI of 45 it is around 55%. The text should be adjusted.
+
+## 5. Level Right
+
+Conceptual level feels appropriate for target audience and defines new concepts like coefficients well. The seven step workflow is defined well in Lesson 40 with each step explained in detail but fails in execution especially regarding consistency throughout its application or lack thereof in Lesson 50 and Lesson 60.
+
+- **The Step Numbering is Broken (50-linear-models & 60-logistic-models):** Both Lesson 50 and Lesson 60's section headings completely skip Step Three: Choose a Model and shift the numbering entirely.Neither lesson starts with the section heading Step One: State the Question already throwing off the remaining section headers from lining up with the seven steps in Lesson 40. Yes, the heading The Question was probably used instead but it reads as a lack of consistency across the lessons and may lead to some confusion for beginners who are depending on the seven step workflow as scaffolding. Either way is fine but maybe either stick to labeling each section header with a strict Step One - Step Seven or just remove the numerical steps entirely and just stick to the names of the steps like what was done for the first step, The Question.
+
+- **60-logistic-models, Step Three** Section Heading is titled Step Three: Check the Model which does not exist according to Lesson 40 in the seven step workflow. Change to Step Three: Check the Assumptions.
+
+- **A Missing Step (50-linear-models & 60-logistic-models):** Both Lesson 50 and Lesson 60 end with a section called Reporting. The seven step workflow in Lesson 40 ends at visualize the results. If Reporting is the final step needed even after Step Seven: Visualize the Results, it should be added as Step 8: Report the Results in the Lesson 40 workflow and if it is not then it should be renamed to Step Seven: Visualize the Results to maintain consistency with Lesson 40 and prevent confusion.
+
+## 6. Anything Else
+
+- **50-linear-models, Step Three:** The general claim that linear regression is robust with several thousand may be slightly misleading. A large sample size does not fix non-linearity, heteroskedasticity, influential observations, or measurement error. The residual-vs-fitted plot does not check each predictor's functional form.
+
+- **50-linear-models, Step Five (Coefficient Plot Wording):** The figure caption mentions that intervals crossing zero are consistent with no association. This phrasing may imply a definitive statistical test. It could be more precise and less misleading to just say that the interval includes zero.
+
+- **60-logistic-models, Step Four:** The text should mention that the BMI odds ratio is a conditional association at fixed age, sex, and fibre. It is not automatically a causal effect.
+
+## Additional Information
+
+The prepare_nhanes.py Python script for downloading and preparing the NHANES data did not work for us. It returned a 403 Forbidden error from the CDC server. Could be a personal issue just wanted to make a note. Downloaded the .xpt files manually from Protobi NHANES Data Repository on GitHub to generate the figures.
