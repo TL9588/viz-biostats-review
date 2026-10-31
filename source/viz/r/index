@@ -1,0 +1,69 @@
+---
+tags: visualization r ggplot2 nhanes nutrition biostatistics
+---
+
+# Data Visualization With R
+
+These tutorials build statistical graphics in R using [ggplot2](https://ggplot2.tidyverse.org/), the most widely used plotting package in the R ecosystem. Rather than demonstrating each chart type in isolation, the lessons follow a single analysis from first look to finished figure, using publicly available health and nutrition data.
+
+The material is organized around the *grammar of graphics*: the idea that any statistical figure can be described as data mapped to visual properties, drawn with geometric shapes, and adjusted through scales and coordinate systems. Learning that grammar makes it possible to construct a figure that has never been seen before, rather than searching for an example to copy.
+
+The later tutorials extend this into statistical modelling. Visualization is not applied to a model once the analysis is finished — it is how the data are explored before a model is chosen, how its assumptions are checked after it is fitted, and how its results are communicated. Those tutorials cover the models most common in biostatistics, using the same health and nutrition data.
+
+## Who These Tutorials Are For
+
+Readers should be comfortable with basic R syntax — assigning variables, calling functions, and working with data frames. No prior plotting experience is assumed. Researchers in the health sciences will recognize the datasets, but the techniques apply to any field.
+
+For help installing R and RStudio, see [Installing R and RStudio for the First Time](../../ai/r/00-installing-r-and-rstudio.md).
+
+## Data
+
+Every lesson draws on the National Health and Nutrition Examination Survey (NHANES), a public-domain survey conducted by the United States Centers for Disease Control and Prevention. Two small teaching datasets supplement it where a simpler example is clearer. [Setup and the Data](00-setup-and-data.md) describes all three, explains how the survey is structured, and covers the sampling issues that affect how its figures should be interpreted.
+
+A parallel set of tutorials covers the [same material in Python](../python/index.md).
+
+## Tutorials
+
+```{gallery-grid}
+---
+grid-columns: 1
+---
+- header: "{fas}`database` Setup and the Data"
+  content: "The packages used throughout, the datasets behind every figure, and why NHANES sample weights change what its numbers mean."
+  link: "00-setup-and-data.html"
+
+- header: "{fas}`chart-simple` First Plots"
+  content: "The grammar of graphics and the layered model. Build a histogram and a density plot one layer at a time, and see how data maps to visual properties."
+  link: "10-first-plots.html"
+
+- header: "{fas}`chart-column` Comparing Groups"
+  content: "Boxplots, violins, and strip charts for comparing distributions across categories, plus faceting for small multiples and deliberate reordering of factors."
+  link: "20-comparing-groups.html"
+
+- header: "{fas}`chart-scatter` Relationships"
+  content: "Scatterplots for two continuous variables, practical fixes for overplotting with thousands of points, and smoothers with confidence bands."
+  link: "30-relationships.html"
+
+- header: "{fas}`diagram-project` Choosing a Model"
+  content: "Why visualization belongs at every stage of a modelling workflow, how the type of outcome determines the model, and what cross-sectional survey data can and cannot show."
+  link: "40-choosing-a-model.html"
+
+- header: "{fas}`ruler` Linear Models for Continuous Outcomes"
+  content: "A full worked regression of blood pressure on sodium intake: look, fit, check assumptions with residual plots, interpret, and visualize with coefficient and predicted-value figures."
+  link: "50-linear-models.html"
+
+- header: "{fas}`scale-balanced` Logistic Regression for Binary Outcomes"
+  content: "The same workflow for a yes-or-no outcome. Odds ratios on a log scale, why they are not risk ratios, and predicted probability curves that readers can actually interpret."
+  link: "60-logistic-models.html"
+
+- header: "{fas}`chart-area` Trends and Uncertainty"
+  content: "Error bars, confidence intervals, and survey-weighted estimation across three NHANES cycles, showing how weighting changes the conclusion."
+  link: "70-trends-and-uncertainty.html"
+
+- header: "{fas}`image` Publication-Ready Figures"
+  content: "Themes, direct labelling, annotation, multi-panel composition, colorblind-safe palettes, and exporting at print resolution."
+  link: "80-publication-ready.html"
+
+```
+
+> **To Get Support:** - Please email datalab-support@elist.tufts.edu for R and data visualization support at Tufts.
