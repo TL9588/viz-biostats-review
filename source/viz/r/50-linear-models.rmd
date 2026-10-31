@@ -1,0 +1,207 @@
+---
+tags: visualization r ggplot2 nhanes nutrition biostatistics regression
+jupyter:
+  mystnb:
+    execution_mode: "off"
+---
+
+# Linear Models for Continuous Outcomes
+
+This lesson works through the seven-step sequence from [Choosing a Model](40-choosing-a-model.md) for a continuous outcome, using linear regression. Each step produces a figure, and together they show why visualization belongs at every stage rather than only at the end.
+
+```{note}
+Code execution on this page is currently disabled. To run it, remove the `mystnb` block from the YAML header at the top of the source file once the project environment includes `ggplot2`, `dplyr`, and `broom`, and the NHANES data files are present in the `data` directory.
+```
+
+## The Question
+
+> Among United States adults, is higher dietary sodium intake associated with higher systolic blood pressure, after accounting for age, sex, and body mass index?
+
+The outcome, systolic blood pressure, is continuous, so linear regression is the appropriate model. The exposure of interest is sodium intake. Age, sex, and body mass index (BMI) are included as confounders for the reasons given in the previous lesson.
+
+```{r setup, tags=c("remove-stderr")}
+library(ggplot2)
+library(dplyr)
+library(broom)
+
+adults <- readr::read_csv("data/nhanes-2017-2018.csv", show_col_types = FALSE)
+```
+
+## Step One: Look at the Data
+
+Before any model is fitted, the outcome is plotted on its own. This reveals its shape, its spread, and any values that look implausible.
+
+```{r outcome-distribution, tags=c("remove-stderr"), mystnb.image.alt="Histogram of systolic blood pressure, unimodal and right-skewed, centred near 120 millimetres of mercury with a long tail extending past 180.", mystnb.figure.caption="Distribution of systolic blood pressure among adults in the NHANES 2017-2018 sample."}
+ggplot(adults, aes(x = systolic_mmhg)) +
+  geom_histogram(binwidth = 5, fill = "#4C72B0", colour = "white") +
+  labs(
+    x = "Systolic blood pressure (mmHg)",
+    y = "Number of adults"
+  ) +
+  theme_minimal()
+```
+
+The distribution is unimodal with a long right tail, which is expected for blood pressure. Nothing suggests a data error.
+
+Next the outcome is plotted against the exposure. With several thousand points, plotting them directly produces a solid mass, so transparency and a smoother are used to reveal the trend.
+
+```{r exposure-outcome, tags=c("remove-stderr"), mystnb.image.alt="Scatterplot of systolic blood pressure against sodium intake with a loess smoother showing a nearly flat line, indicating little unadjusted association.", mystnb.figure.caption="Systolic blood pressure against sodium intake, with a loess smoother."}
+ggplot(adults, aes(x = sodium_mg, y = systolic_mmhg)) +
+  geom_point(alpha = 0.1, colour = "#4C72B0") +
+  geom_smooth(method = "loess", formula = y ~ x, colour = "#C44E52") +
+  labs(
+    x = "Sodium intake (mg in 24 hours)",
+    y = "Systolic blood pressure (mmHg)"
+  ) +
+  theme_minimal()
+```
+
+The smoother is close to flat. This is worth pausing on: the unadjusted picture suggests almost no relationship. Whether one appears after adjusting for age is exactly what the model will answer.
+
+```{important}
+A smoother is a flexible summary of the data, not a model. It produces no coefficient, no confidence interval for an effect, and no way to adjust for other variables. It is a tool for looking, not for concluding.
+```
+
+## Step Two: Fit the Model
+
+Rows with a missing value in any model variable are dropped automatically by `lm()`. Doing this explicitly first makes the number of observations visible rather than hidden.
+
+```{r fit-model, tags=c("remove-stderr")}
+model_data <- adults |>
+  filter(
+    !is.na(systolic_mmhg), !is.na(sodium_mg),
+    !is.na(bmi), !is.na(age_years), !is.na(sex)
+  )
+
+nrow(adults)
+nrow(model_data)
+
+bp_model <- lm(
+  systolic_mmhg ~ sodium_mg + age_years + sex + bmi,
+  data = model_data
+)
+```
+
+The difference between those two counts is the number of adults excluded for missing data. Any report of these results should state it.
+
+## Step Three: Check the Assumptions
+
+Linear regression assumes that the relationship is straight, that the scatter around the fitted line is constant, and that the residuals are approximately normal. The `augment()` function from `broom` attaches fitted values and residuals to the data, which makes each assumption checkable with a plot.
+
+```{r augment, tags=c("remove-stderr")}
+diagnostics <- augment(bp_model)
+names(diagnostics)
+```
+
+A plot of residuals against fitted values checks the first two assumptions at once. A horizontal band of even width is what should be seen; a curve indicates a non-linear relationship, and a widening fan indicates non-constant variance.
+
+```{r residual-plot, tags=c("remove-stderr"), mystnb.image.alt="Residuals plotted against fitted values, forming a roughly horizontal band centred on zero with slightly greater spread at higher fitted values.", mystnb.figure.caption="Residuals against fitted values. A horizontal band of even width supports the model assumptions."}
+ggplot(diagnostics, aes(x = .fitted, y = .resid)) +
+  geom_point(alpha = 0.15, colour = "#4C72B0") +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_smooth(method = "loess", formula = y ~ x, se = FALSE, colour = "#C44E52") +
+  labs(
+    x = "Fitted systolic blood pressure (mmHg)",
+    y = "Residual (mmHg)"
+  ) +
+  theme_minimal()
+```
+
+A quantile-quantile plot checks the normality of the residuals. Points following the diagonal line indicate approximate normality; departures at the ends indicate heavier tails than a normal distribution.
+
+```{r qq-plot, tags=c("remove-stderr"), mystnb.image.alt="Quantile-quantile plot of standardised residuals, following the diagonal reference line closely through the centre with mild upward departure in the upper tail.", mystnb.figure.caption="Quantile-quantile plot of standardised residuals against a normal distribution."}
+ggplot(diagnostics, aes(sample = .std.resid)) +
+  stat_qq(alpha = 0.15, colour = "#4C72B0") +
+  stat_qq_line(colour = "#C44E52") +
+  labs(
+    x = "Theoretical quantile",
+    y = "Standardised residual"
+  ) +
+  theme_minimal()
+```
+
+Mild departure in the upper tail reflects the right skew seen in the first figure. With a sample of several thousand, linear regression is robust to this degree of departure.
+
+## Step Four: Interpret the Estimates
+
+The `tidy()` function converts the model into a data frame, which is both easier to read than the default output and directly usable for plotting.
+
+```{r tidy-model, tags=c("remove-stderr")}
+coefficients <- tidy(bp_model, conf.int = TRUE)
+coefficients
+
+glance(bp_model)[, c("r.squared", "nobs")]
+```
+
+Each estimate is the change in systolic blood pressure for a one-unit increase in that predictor, holding the others fixed. For `age_years`, the estimate is the difference in millimetres of mercury associated with being one year older among people of the same sex, BMI, and sodium intake.
+
+The sodium coefficient is per **one milligram**, which is far too small a unit to interpret. Rescaling to a meaningful contrast makes the estimate readable.
+
+```{r rescale, tags=c("remove-stderr")}
+sodium_row <- coefficients |> filter(term == "sodium_mg")
+
+sodium_row |>
+  transmute(
+    per_1000mg = estimate * 1000,
+    conf.low = conf.low * 1000,
+    conf.high = conf.high * 1000
+  )
+```
+
+```{tip}
+Always report an effect per a unit a reader can picture. A gram of sodium is meaningful; a milligram is not. Rescaling changes the number and its interval together, never the conclusion.
+```
+
+## Step Five: Visualize the Results
+
+A coefficient plot shows every estimate with its confidence interval on one axis. The intercept is excluded because it is on a different scale and is rarely of interest.
+
+```{r coefficient-plot, tags=c("remove-stderr"), mystnb.image.alt="Coefficient plot showing point estimates with 95 percent confidence intervals for sodium intake, age, sex and body mass index, with a dashed vertical line at zero.", mystnb.figure.caption="Estimated coefficients with 95% confidence intervals. Intervals crossing the dashed line are consistent with no association."}
+coefficients |>
+  filter(term != "(Intercept)") |>
+  ggplot(aes(x = estimate, y = term)) +
+  geom_vline(xintercept = 0, linetype = "dashed", colour = "grey40") +
+  geom_pointrange(aes(xmin = conf.low, xmax = conf.high), colour = "#4C72B0") +
+  labs(
+    x = "Change in systolic blood pressure (mmHg)",
+    y = NULL
+  ) +
+  theme_minimal()
+```
+
+Predictors measured on different scales cannot be compared by the length of their bars on this plot, because a one-unit change means something different for each. The figure shows the precision of each estimate and whether its interval includes zero.
+
+A more interpretable figure holds the other variables fixed and shows predicted blood pressure across the observed range of sodium intake.
+
+```{r predicted-values, tags=c("remove-stderr"), mystnb.image.alt="Predicted systolic blood pressure rising gently across sodium intake from about 1000 to 7000 milligrams, with a shaded confidence band that widens at both extremes.", mystnb.figure.caption="Predicted systolic blood pressure across sodium intake for a 50-year-old female at median BMI, with a 95% confidence band."}
+prediction_grid <- expand.grid(
+  sodium_mg = seq(1000, 7000, by = 250),
+  age_years = 50,
+  sex = factor("Female", levels = levels(factor(model_data$sex))),
+  bmi = median(model_data$bmi)
+)
+
+predictions <- predict(bp_model, newdata = prediction_grid, interval = "confidence")
+prediction_grid <- bind_cols(prediction_grid, as.data.frame(predictions))
+
+ggplot(prediction_grid, aes(x = sodium_mg, y = fit)) +
+  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.2, fill = "#4C72B0") +
+  geom_line(colour = "#4C72B0", linewidth = 1) +
+  labs(
+    x = "Sodium intake (mg in 24 hours)",
+    y = "Predicted systolic blood pressure (mmHg)"
+  ) +
+  theme_minimal()
+```
+
+This is the figure to put in a paper. It states the adjusted association in the units of the outcome, shows the uncertainty, and requires no familiarity with regression tables to read.
+
+```{warning}
+The confidence band describes uncertainty in the **average** predicted blood pressure, not the range in which an individual's blood pressure would fall. Individual variation is much wider. Using a confidence band to describe individuals is a common and serious misreading.
+```
+
+## Reporting
+
+A complete report of this analysis states the model, the number of observations, the adjusted estimate with its interval in interpretable units, and the limitations. The cross-sectional design, the self-reported dietary measure, and the absence of survey weighting all belong in that statement, as described in [Choosing a Model](40-choosing-a-model.md).
+
+The next lesson applies the same seven steps to a binary outcome, where both the model and the interpretation of its coefficients change.
