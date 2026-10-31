@@ -1,0 +1,94 @@
+---
+tags: visualization r nhanes biostatistics regression modeling
+---
+
+# Choosing a Model
+
+The previous lessons used figures to describe data. This lesson begins a second use for the same skills: exploring, checking, and reporting a statistical model.
+
+## Why Modeling Appears in a Visualization Guide
+
+Visualization is not something applied to a model after the analysis is finished. It does three distinct jobs across the life of a model, and skipping any of them is how incorrect results reach publication.
+
+Before fitting
+: Figures reveal the shape of an outcome, the presence of outliers, and whether a relationship looks straight or curved. A model fitted without looking first is a guess.
+
+After fitting
+: Every regression model rests on assumptions. Residual plots check those assumptions far more reliably than any single summary statistic.
+
+When reporting
+: A table of coefficients is difficult to read and easy to misread. A figure showing effect estimates with their confidence intervals, or predicted values across a range of exposure, communicates the same result in a form a reader can absorb at a glance.
+
+```{note}
+A statistical model is a description of how an outcome varies with one or more explanatory variables. It does not establish that one causes the other. That distinction matters throughout this lesson and is returned to at the end.
+```
+
+## A Workflow
+
+The lessons that follow use the same seven steps each time. The order matters: choosing a model before looking at the data, or interpreting coefficients before checking assumptions, invites errors that are hard to detect later.
+
+1. **State the question.** Name the outcome, the exposure of interest, and the population.
+2. **Look at the data.** Plot the outcome on its own, then against the exposure.
+3. **Choose a model.** The type of outcome determines the choice, as described below.
+4. **Fit the model.** Record how many observations it actually used.
+5. **Check the assumptions.** Use diagnostic figures, not a single test statistic.
+6. **Interpret the estimates.** Report effect sizes with confidence intervals.
+7. **Visualize the results.** Produce a figure a reader can interpret without the table.
+
+## Choosing a Model From the Outcome
+
+The single most useful rule in applied biostatistics is that **the type of the outcome variable determines the model.** The explanatory variables can be continuous, categorical, or a mixture, and this does not change the choice. The outcome does.
+
+| Outcome Type | Example | Model | R Function |
+| --- | --- | --- | --- |
+| Continuous | Systolic blood pressure, body mass index | Linear regression | `lm()` |
+| Binary | Hypertension present or absent | Logistic regression | `glm(family = binomial)` |
+| Count | Number of clinic visits in a year | Poisson or negative binomial regression | `glm(family = poisson)` |
+| Time to event | Years until diagnosis, with censoring | Cox proportional hazards | `survival::coxph()` |
+| Ordered category | Self-rated health on a five-point scale | Proportional odds | `MASS::polr()` |
+
+What a coefficient *means* changes with the model, and this is the most common source of confusion for readers new to regression.
+
+| Model | A Coefficient Represents |
+| --- | --- |
+| Linear | The change in the outcome for a one-unit increase in the predictor |
+| Logistic | The change in the log odds; exponentiated, an odds ratio |
+| Poisson | The change in the log rate; exponentiated, a rate ratio |
+| Cox | The change in the log hazard; exponentiated, a hazard ratio |
+
+The lessons that follow cover the first two, which together account for most of applied health research.
+
+## What This Data Supports
+
+The NHANES extract described in [Setup and the Data](00-setup-and-data.md) contains several outcomes suitable for each of the first two model types.
+
+| Candidate Outcome | Type | Possible Model |
+| --- | --- | --- |
+| `systolic_mmhg`, `bmi`, `cholesterol_mgdl` | Continuous | Linear regression |
+| Hypertension, derived from blood pressure | Binary | Logistic regression |
+| Obesity, derived as `bmi >= 30` | Binary | Logistic regression |
+| Elevated `hba1c_percent`, derived at a clinical threshold | Binary | Logistic regression |
+
+Binary outcomes are **derived** from continuous measurements by applying a clinical threshold. This is routine in health research, but it discards information: a person just above the threshold and a person far above it are treated identically. Where a continuous outcome is available and the question permits it, the continuous version is usually the better analysis.
+
+The extract contains no time-to-event or count outcomes, so Cox and Poisson models are not demonstrated here.
+
+## Adjustment and Confounding
+
+Models in these lessons include `age_years` and `sex` alongside the exposure of interest. These are **confounders**: variables associated with both the exposure and the outcome, which would distort the estimated relationship if left out.
+
+Blood pressure rises with age, and dietary intake also differs by age. A model of blood pressure against sodium intake that ignores age would attribute some of the effect of age to sodium. Including age in the model estimates the sodium association *among people of the same age*, which is the quantity of interest.
+
+Choosing which variables to adjust for is a subject-matter decision, not a statistical one. It should be made from knowledge of the topic before the model is fitted, not by searching for the combination that produces the most appealing result.
+
+## What These Models Cannot Show
+
+Three limits apply to every model in these lessons and should appear in any report of results from this data.
+
+**The data are cross-sectional.** Every measurement was taken at a single visit. Nothing in the data establishes that exposure preceded outcome, so an association cannot be interpreted as an effect. Higher sodium intake among people with higher blood pressure is equally consistent with blood pressure influencing diet, or with a third factor influencing both.
+
+**Dietary intake is self-reported.** It comes from a 24-hour recall interview and is measured with substantial error, which generally biases estimated associations toward zero.
+
+**The models shown ignore the survey design.** As described in [Setup and the Data](00-setup-and-data.md), NHANES is not a simple random sample. The models in the next two lessons are unweighted, which keeps the code readable while the concepts are introduced; their estimates describe the sample rather than the United States population. [Trends and Uncertainty](70-trends-and-uncertainty.md) shows how `survey::svyglm()` fits the same models under the sampling design, and how much the estimates move.
+
+With those limits stated, the next lesson works through the full sequence for a continuous outcome.
