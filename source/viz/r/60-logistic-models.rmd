@@ -1,0 +1,194 @@
+---
+tags: visualization r ggplot2 nhanes biostatistics regression logistic
+jupyter:
+  mystnb:
+    execution_mode: "off"
+---
+
+# Logistic Regression for Binary Outcomes
+
+Many questions in health research concern whether a condition is present or absent rather than how much of something a person has. This lesson follows the same seven steps as the previous one, with a binary outcome and the changes in interpretation and visualization that follow from it.
+
+```{note}
+Code execution on this page is currently disabled. To run it, remove the `mystnb` block from the YAML header at the top of the source file once the project environment includes `ggplot2`, `dplyr`, and `broom`, and the NHANES data files are present in the `data` directory.
+```
+
+## The Question
+
+> Among United States adults, is higher body mass index associated with higher odds of hypertension, after accounting for age, sex, and dietary fibre intake?
+
+The outcome is binary, so logistic regression is the appropriate model.
+
+```{r setup, tags=c("remove-stderr")}
+library(ggplot2)
+library(dplyr)
+library(broom)
+
+adults <- readr::read_csv("data/nhanes-2017-2018.csv", show_col_types = FALSE)
+```
+
+## Deriving the Outcome
+
+Hypertension is not recorded directly. It is derived by applying a clinical threshold to the measured blood pressure, following the 2017 American College of Cardiology and American Heart Association definition of stage one hypertension.
+
+```{r derive-outcome, tags=c("remove-stderr")}
+model_data <- adults |>
+  filter(
+    !is.na(systolic_mmhg), !is.na(diastolic_mmhg),
+    !is.na(bmi), !is.na(age_years), !is.na(sex), !is.na(fiber_g)
+  ) |>
+  mutate(
+    hypertension = factor(
+      if_else(systolic_mmhg >= 130 | diastolic_mmhg >= 80, "Yes", "No"),
+      levels = c("No", "Yes")
+    )
+  )
+
+nrow(model_data)
+count(model_data, hypertension)
+```
+
+```{important}
+The order of the factor levels determines what the model predicts. With levels `c("No", "Yes")`, R treats `No` as the reference and models the odds of `Yes`. Reversing the order silently reverses the direction of every estimate, which is among the easiest mistakes to make and the hardest to notice.
+```
+
+Dichotomising a continuous measurement discards information, as noted in [Choosing a Model](40-choosing-a-model.md). It is done here because clinical hypertension is a recognised category with established thresholds, not merely for convenience.
+
+## Step One: Look at the Data
+
+With a binary outcome, a histogram of the outcome is uninformative. What matters is how its prevalence varies across the exposure. Grouping the exposure into bands makes this visible.
+
+```{r prevalence-by-bmi, tags=c("remove-stderr"), mystnb.image.alt="Bar chart showing the proportion of adults with hypertension rising steadily across body mass index categories from underweight through obese.", mystnb.figure.caption="Observed prevalence of hypertension by body mass index category."}
+model_data |>
+  mutate(
+    bmi_group = cut(
+      bmi,
+      breaks = c(0, 18.5, 25, 30, Inf),
+      labels = c("Underweight", "Healthy", "Overweight", "Obese"),
+      right = FALSE
+    )
+  ) |>
+  group_by(bmi_group) |>
+  summarise(prevalence = mean(hypertension == "Yes"), n = n()) |>
+  ggplot(aes(x = bmi_group, y = prevalence)) +
+  geom_col(fill = "#4C72B0") +
+  scale_y_continuous(labels = scales::label_percent()) +
+  labs(
+    x = "Body mass index category",
+    y = "Adults with hypertension"
+  ) +
+  theme_minimal()
+```
+
+Prevalence rises across categories, which suggests an association worth modelling. The categories are used for looking only; the model that follows uses BMI as a continuous variable, which is more powerful and avoids arbitrary cut points.
+
+## Step Two: Fit the Model
+
+Logistic regression is fitted with `glm()` and the binomial family.
+
+```{r fit-model, tags=c("remove-stderr")}
+ht_model <- glm(
+  hypertension ~ bmi + age_years + sex + fiber_g,
+  data = model_data,
+  family = binomial
+)
+```
+
+## Step Three: Check the Model
+
+The residual plots used for linear regression do not apply here, because a binary outcome makes residuals take only two values at any fitted probability. Logistic regression instead assumes that the log odds change linearly with each continuous predictor.
+
+A practical check compares the prevalence observed within bands of the predictor against the prevalence the model predicts for the same people. Close agreement supports the assumption.
+
+```{r calibration, tags=c("remove-stderr"), mystnb.image.alt="Observed against predicted hypertension prevalence across ten bins of predicted risk, with points lying close to the diagonal line of perfect agreement.", mystnb.figure.caption="Observed against model-predicted prevalence across ten equal-sized bins of predicted risk."}
+tibble(
+  predicted = fitted(ht_model),
+  observed = as.numeric(model_data$hypertension == "Yes")
+) |>
+  mutate(bin = ntile(predicted, 10)) |>
+  group_by(bin) |>
+  summarise(predicted = mean(predicted), observed = mean(observed)) |>
+  ggplot(aes(x = predicted, y = observed)) +
+  geom_abline(linetype = "dashed", colour = "grey40") +
+  geom_point(size = 2.5, colour = "#4C72B0") +
+  scale_x_continuous(labels = scales::label_percent()) +
+  scale_y_continuous(labels = scales::label_percent()) +
+  labs(
+    x = "Predicted prevalence",
+    y = "Observed prevalence"
+  ) +
+  theme_minimal()
+```
+
+## Step Four: Interpret the Estimates
+
+By default the coefficients are on the log-odds scale, which few readers can interpret. Exponentiating them produces odds ratios.
+
+```{r odds-ratios, tags=c("remove-stderr")}
+odds_ratios <- tidy(ht_model, exponentiate = TRUE, conf.int = TRUE)
+odds_ratios
+```
+
+An odds ratio of 1 means no association. Above 1 means higher odds of hypertension; below 1 means lower odds. The BMI estimate is the ratio of the odds of hypertension for two people differing by one unit of BMI who are otherwise the same age, sex, and fibre intake.
+
+```{warning}
+An odds ratio is not a risk ratio. When an outcome is common — hypertension affects a large share of adults — the odds ratio is noticeably further from 1 than the corresponding risk ratio, and reading it as "how many times more likely" overstates the association. Report it as an odds ratio and describe it as such.
+```
+
+## Step Five: Visualize the Results
+
+Odds ratios are ratios, so they belong on a logarithmic axis. On that scale, a halving and a doubling appear as equal distances from the no-effect line, which is what makes the figure honest.
+
+```{r odds-ratio-plot, tags=c("remove-stderr"), mystnb.image.alt="Odds ratios with 95 percent confidence intervals for body mass index, age, sex and fibre intake on a logarithmic axis, with a dashed line at one.", mystnb.figure.caption="Adjusted odds ratios with 95% confidence intervals on a logarithmic scale. Intervals crossing the dashed line are consistent with no association."}
+odds_ratios |>
+  filter(term != "(Intercept)") |>
+  ggplot(aes(x = estimate, y = term)) +
+  geom_vline(xintercept = 1, linetype = "dashed", colour = "grey40") +
+  geom_pointrange(aes(xmin = conf.low, xmax = conf.high), colour = "#4C72B0") +
+  scale_x_log10() +
+  labs(
+    x = "Odds ratio (log scale)",
+    y = NULL
+  ) +
+  theme_minimal()
+```
+
+Odds ratios remain difficult for most readers. A predicted probability curve avoids them entirely and communicates the same result in units anyone can interpret.
+
+The interval is calculated on the log-odds scale and then converted with `plogis()`. Doing it in that order keeps the interval inside nought and one, which calculating it directly on the probability scale would not guarantee.
+
+```{r predicted-probability, tags=c("remove-stderr"), mystnb.image.alt="Predicted probability of hypertension rising from roughly 30 percent at a body mass index of 18 to about 60 percent at 45, with a shaded confidence band that widens at both ends.", mystnb.figure.caption="Predicted probability of hypertension across body mass index for a 50-year-old female at median fibre intake, with a 95% confidence band."}
+prediction_grid <- data.frame(
+  bmi = seq(18, 45, by = 0.5),
+  age_years = 50,
+  sex = factor("Female", levels = levels(factor(model_data$sex))),
+  fiber_g = median(model_data$fiber_g)
+)
+
+link <- predict(ht_model, newdata = prediction_grid, type = "link", se.fit = TRUE)
+
+prediction_grid <- prediction_grid |>
+  mutate(
+    probability = plogis(link$fit),
+    conf.low = plogis(link$fit - 1.96 * link$se.fit),
+    conf.high = plogis(link$fit + 1.96 * link$se.fit)
+  )
+
+ggplot(prediction_grid, aes(x = bmi, y = probability)) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2, fill = "#4C72B0") +
+  geom_line(colour = "#4C72B0", linewidth = 1) +
+  scale_y_continuous(labels = scales::label_percent()) +
+  labs(
+    x = "Body mass index (kg/m²)",
+    y = "Predicted probability of hypertension"
+  ) +
+  theme_minimal()
+```
+
+The curve is gently S-shaped, which is the characteristic form of a logistic model. Its slope is steepest in the middle of the range and flattens at both ends, meaning a one-unit change in BMI does not correspond to a fixed change in probability. This is precisely the behaviour that a single odds ratio conceals and the figure reveals.
+
+## Reporting
+
+A complete report states the model and the threshold used to define the outcome, the number of observations, the adjusted odds ratio with its interval, and the limitations from [Choosing a Model](40-choosing-a-model.md). Where space allows, a predicted probability figure should accompany the odds ratios, because it is the form most readers will understand correctly.
+
+[Trends and Uncertainty](70-trends-and-uncertainty.md) fits these same models under the NHANES sampling design, where the estimates become statements about the United States population rather than the sample.
